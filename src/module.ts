@@ -1,26 +1,33 @@
-import { createResolver, defineNuxtModule } from '@nuxt/kit'
-import { fileURLToPath } from 'node:url'
+import { defineNuxtModule, createResolver } from '@nuxt/kit'
+import { defu } from 'defu'
 
-// Module options TypeScript inteface definition
-export interface ModuleOptions { }
+const CONFIG_KEY = 'clarity'
+
+// Module options TypeScript interface definition
+export interface ModuleOptions {
+  id: string | undefined
+}
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {
-    name: 'nuxt-clarity-analytics',
-    configKey: 'clarity',
-    compatibility: {
-      nuxt: '^3.0.0'
-    }
+    name: 'nuxt-clarity-module',
+    configKey: CONFIG_KEY,
   },
   // Default configuration options of the Nuxt module
-  defaults: {},
-  setup(_, nuxt) {
-    const { resolve } = createResolver(import.meta.url)
-    const runtimeDir = fileURLToPath(new URL('./runtime', import.meta.url))
+  defaults: {
+    id: undefined,
+  },
+  setup(_options, _nuxt) {
+    const resolver = createResolver(import.meta.url)
+    _nuxt.options.runtimeConfig.public[CONFIG_KEY] = defu<ModuleOptions, ModuleOptions[]>(
+      _nuxt.options.runtimeConfig.public[CONFIG_KEY] || {}, {
+        id: _options.id,
+      },
+    )
 
-    nuxt.hook('nitro:config', config => {
+    _nuxt.hook('nitro:config', (config) => {
       config.plugins = config.plugins || []
-      config.plugins.push(resolve(runtimeDir, 'server', 'plugins', 'clarity'))
+      config.plugins.push(resolver.resolve('runtime/plugin'))
     })
-  }
+  },
 })
